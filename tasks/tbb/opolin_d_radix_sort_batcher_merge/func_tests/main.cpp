@@ -10,7 +10,7 @@
 #include "core/task/include/task.hpp"
 #include "tbb/opolin_d_radix_sort_batcher_merge/include/ops_tbb.hpp"
 
-namespace opolin_d_radix_betcher_sort_tbb {
+namespace opolin_d_radix_batcher_sort_tbb {
 namespace {
 void GenDataRadixSort(size_t size, std::vector<int> &vec, std::vector<int> &expected) {
   std::random_device rd;
@@ -26,9 +26,9 @@ void GenDataRadixSort(size_t size, std::vector<int> &vec, std::vector<int> &expe
   std::ranges::sort(expected);
 }
 }  // namespace
-}  // namespace opolin_d_radix_betcher_sort_tbb
+}  // namespace opolin_d_radix_batcher_sort_tbb
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_size_3) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_size_3) {
   int size = 3;
   std::vector<int> expected;
   std::vector<int> input;
@@ -42,7 +42,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_size_3) {
   task_data_tbb->outputs.emplace_back(reinterpret_cast<uint8_t *>(out.data()));
   task_data_tbb->outputs_count.emplace_back(out.size());
 
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), true);
   test_task_tbb->PreProcessing();
   test_task_tbb->Run();
@@ -50,7 +50,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_size_3) {
   ASSERT_EQ(out, expected);
 }
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_size_6) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_size_6) {
   int size = 6;
   std::vector<int> expected;
   std::vector<int> input;
@@ -63,7 +63,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_size_6) {
   task_data_tbb->outputs.emplace_back(reinterpret_cast<uint8_t *>(out.data()));
   task_data_tbb->outputs_count.emplace_back(out.size());
 
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), true);
   test_task_tbb->PreProcessing();
   test_task_tbb->Run();
@@ -71,7 +71,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_size_6) {
   ASSERT_EQ(out, expected);
 }
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_empty) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_empty) {
   int size = 0;
   std::vector<int> expected;
   std::vector<int> input;
@@ -82,11 +82,11 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_empty) {
   task_data_tbb->outputs.emplace_back(reinterpret_cast<uint8_t *>(out.data()));
   task_data_tbb->outputs_count.emplace_back(size);
 
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), false);
 }
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_one_element) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_one_element) {
   int size = 1;
   std::vector<int> expected;
   std::vector<int> input;
@@ -99,7 +99,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_one_element) {
   task_data_tbb->outputs.emplace_back(reinterpret_cast<uint8_t *>(out.data()));
   task_data_tbb->outputs_count.emplace_back(out.size());
 
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), true);
   test_task_tbb->PreProcessing();
   test_task_tbb->Run();
@@ -107,7 +107,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_one_element) {
   ASSERT_EQ(out, expected);
 }
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_negative_values) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_negative_values) {
   int size = 5;
   std::vector<int> expected;
   std::vector<int> input;
@@ -120,7 +120,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_negative_values) {
   task_data_tbb->outputs.emplace_back(reinterpret_cast<uint8_t *>(out.data()));
   task_data_tbb->outputs_count.emplace_back(out.size());
 
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), true);
   test_task_tbb->PreProcessing();
   test_task_tbb->Run();
@@ -128,7 +128,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_negative_values) {
   ASSERT_EQ(out, expected);
 }
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_sorted) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_sorted) {
   int size = 5;
   std::vector<int> expected;
   std::vector<int> input;
@@ -142,7 +142,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_sorted) {
   task_data_tbb->outputs.emplace_back(reinterpret_cast<uint8_t *>(out.data()));
   task_data_tbb->outputs_count.emplace_back(out.size());
 
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), true);
   test_task_tbb->PreProcessing();
   test_task_tbb->Run();
@@ -150,7 +150,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_sorted) {
   ASSERT_EQ(out, expected);
 }
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_equal_values) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_equal_values) {
   int size = 3;
   std::vector<int> expected;
   std::vector<int> input;
@@ -163,7 +163,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_equal_values) {
   task_data_tbb->outputs.emplace_back(reinterpret_cast<uint8_t *>(out.data()));
   task_data_tbb->outputs_count.emplace_back(out.size());
 
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), true);
   test_task_tbb->PreProcessing();
   test_task_tbb->Run();
@@ -171,7 +171,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_equal_values) {
   ASSERT_EQ(out, expected);
 }
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_reversed) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_reversed) {
   int size = 10;
   std::vector<int> expected;
   std::vector<int> input;
@@ -184,7 +184,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_reversed) {
   task_data_tbb->outputs.emplace_back(reinterpret_cast<uint8_t *>(out.data()));
   task_data_tbb->outputs_count.emplace_back(out.size());
 
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), true);
   test_task_tbb->PreProcessing();
   test_task_tbb->Run();
@@ -192,7 +192,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_reversed) {
   ASSERT_EQ(out, expected);
 }
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_varying_digit_counts) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_varying_digit_counts) {
   int size = 6;
   std::vector<int> expected;
   std::vector<int> input;
@@ -205,7 +205,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_varying_digit_counts) {
   task_data_tbb->outputs.emplace_back(reinterpret_cast<uint8_t *>(out.data()));
   task_data_tbb->outputs_count.emplace_back(out.size());
 
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), true);
   test_task_tbb->PreProcessing();
   test_task_tbb->Run();
@@ -213,7 +213,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_varying_digit_counts) {
   ASSERT_EQ(out, expected);
 }
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_negative_size) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_negative_size) {
   int size = -1;
   std::vector<int> expected;
   std::vector<int> input;
@@ -224,15 +224,15 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_negative_size) {
   task_data_tbb->outputs.emplace_back(reinterpret_cast<uint8_t *>(out.data()));
   task_data_tbb->outputs_count.emplace_back(size);
 
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), false);
 }
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_size_100) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_size_100) {
   int size = 100;
   std::vector<int> expected;
   std::vector<int> input;
-  opolin_d_radix_betcher_sort_tbb::GenDataRadixSort(size, input, expected);
+  opolin_d_radix_batcher_sort_tbb::GenDataRadixSort(size, input, expected);
 
   std::vector<int> out(size, 0);
   auto task_data_tbb = std::make_shared<ppc::core::TaskData>();
@@ -241,7 +241,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_size_100) {
   task_data_tbb->outputs.emplace_back(reinterpret_cast<uint8_t *>(out.data()));
   task_data_tbb->outputs_count.emplace_back(out.size());
 
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), true);
   test_task_tbb->PreProcessing();
   test_task_tbb->Run();
@@ -249,11 +249,11 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_size_100) {
   ASSERT_EQ(out, expected);
 }
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_size_prime_7) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_size_prime_7) {
   int size = 7;
   std::vector<int> expected;
   std::vector<int> input;
-  opolin_d_radix_betcher_sort_tbb::GenDataRadixSort(size, input, expected);
+  opolin_d_radix_batcher_sort_tbb::GenDataRadixSort(size, input, expected);
 
   std::vector<int> out(size, 0);
   auto task_data_tbb = std::make_shared<ppc::core::TaskData>();
@@ -262,7 +262,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_size_prime_7) {
   task_data_tbb->outputs.emplace_back(reinterpret_cast<uint8_t *>(out.data()));
   task_data_tbb->outputs_count.emplace_back(out.size());
 
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), true);
   test_task_tbb->PreProcessing();
   test_task_tbb->Run();
@@ -270,11 +270,11 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_size_prime_7) {
   ASSERT_EQ(out, expected);
 }
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_size_prime_13) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_size_prime_13) {
   int size = 13;
   std::vector<int> expected;
   std::vector<int> input;
-  opolin_d_radix_betcher_sort_tbb::GenDataRadixSort(size, input, expected);
+  opolin_d_radix_batcher_sort_tbb::GenDataRadixSort(size, input, expected);
 
   std::vector<int> out(size, 0);
   auto task_data_tbb = std::make_shared<ppc::core::TaskData>();
@@ -283,7 +283,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_size_prime_13) {
   task_data_tbb->outputs.emplace_back(reinterpret_cast<uint8_t *>(out.data()));
   task_data_tbb->outputs_count.emplace_back(out.size());
 
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), true);
   test_task_tbb->PreProcessing();
   test_task_tbb->Run();
@@ -291,7 +291,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_size_prime_13) {
   ASSERT_EQ(out, expected);
 }
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_double_reversed_order) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_double_reversed_order) {
   int size = 10;
   std::vector<int> expected;
   std::vector<int> input;
@@ -305,7 +305,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_double_reversed_order) {
   task_data_tbb->outputs.emplace_back(reinterpret_cast<uint8_t *>(out.data()));
   task_data_tbb->outputs_count.emplace_back(out.size());
 
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), true);
   test_task_tbb->PreProcessing();
   test_task_tbb->Run();

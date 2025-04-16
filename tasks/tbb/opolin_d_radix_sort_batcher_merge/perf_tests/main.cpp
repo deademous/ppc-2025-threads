@@ -13,7 +13,7 @@
 #include "core/task/include/task.hpp"
 #include "tbb/opolin_d_radix_sort_batcher_merge/include/ops_tbb.hpp"
 
-namespace opolin_d_radix_betcher_sort_tbb {
+namespace opolin_d_radix_batcher_sort_tbb {
 namespace {
 void GenDataRadixSort(size_t size, std::vector<int> &vec, std::vector<int> &expected) {
   std::random_device rd;
@@ -29,13 +29,13 @@ void GenDataRadixSort(size_t size, std::vector<int> &vec, std::vector<int> &expe
   std::ranges::sort(expected);
 }
 }  // namespace
-}  // namespace opolin_d_radix_betcher_sort_tbb
+}  // namespace opolin_d_radix_batcher_sort_tbb
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_pipeline_run) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_pipeline_run) {
   int size = 500000;
   std::vector<int> input;
   std::vector<int> expected;
-  opolin_d_radix_betcher_sort_tbb::GenDataRadixSort(size, input, expected);
+  opolin_d_radix_batcher_sort_tbb::GenDataRadixSort(size, input, expected);
   std::vector<int> out(size, 0);
   // Create TaskData
   auto task_data_tbb = std::make_shared<ppc::core::TaskData>();
@@ -45,7 +45,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_pipeline_run) {
   task_data_tbb->outputs_count.emplace_back(out.size());
 
   // Create Task
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), true);
   test_task_tbb->PreProcessing();
   test_task_tbb->Run();
@@ -69,11 +69,11 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_pipeline_run) {
   ppc::core::Perf::PrintPerfStatistic(perf_results);
 }
 
-TEST(opolin_d_radix_betcher_sort_tbb, test_task_run) {
+TEST(opolin_d_radix_batcher_sort_tbb, test_task_run) {
   int size = 500000;
   std::vector<int> input;
   std::vector<int> expected;
-  opolin_d_radix_betcher_sort_tbb::GenDataRadixSort(size, input, expected);
+  opolin_d_radix_batcher_sort_tbb::GenDataRadixSort(size, input, expected);
   std::vector<int> out(size, 0);
   // Create TaskData
   auto task_data_tbb = std::make_shared<ppc::core::TaskData>();
@@ -83,7 +83,7 @@ TEST(opolin_d_radix_betcher_sort_tbb, test_task_run) {
   task_data_tbb->outputs_count.emplace_back(out.size());
 
   // Create Task
-  auto test_task_tbb = std::make_shared<opolin_d_radix_betcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
+  auto test_task_tbb = std::make_shared<opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb>(task_data_tbb);
   ASSERT_EQ(test_task_tbb->Validation(), true);
   test_task_tbb->PreProcessing();
   test_task_tbb->Run();
