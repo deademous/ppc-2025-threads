@@ -41,7 +41,7 @@ bool opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::PostProcessingImp
   return true;
 }
 
-void opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::RadixSort(std::vector<int>& arr, int exp) {
+void opolin_d_radix_batcher_sort_tbb::RadixSort(std::vector<int>& arr, int exp) {
   const std::size_t n = arr.size();
   std::vector<int> output(n);
   std::vector<int> count(10, 0);
@@ -78,8 +78,7 @@ void opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::RadixSort(std::ve
   });
 }
 
-void opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::parallelOddEvenMerge(std::vector<int>& arr, int lo,
-                                                                                    int hi) {
+void opolin_d_radix_batcher_sort_tbb::parallelOddEvenMerge(std::vector<int>& arr, int lo, int hi) {
   int n = hi - lo + 1;
   int r = 1;
   while (r < n) {
@@ -123,7 +122,7 @@ void opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::parallelOddEvenMe
   }
 }
 
-void opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::BatcherMergeRadixSort(std::vector<int>& arr) {
+void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& arr) {
   size_t n = arr.size();
   if (n <= 1) {
     return;
