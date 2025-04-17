@@ -58,7 +58,7 @@ void opolin_d_radix_batcher_sort_tbb::RadixSort(std::vector<int>& a, int l, int 
       cnt[(std::abs(a[i]) / exp) % base]++;
     }
     for (int i = 1; i < base; ++i) {
-      cnt[i] += cnt[i-1];
+      cnt[i] += cnt[i - 1];
     }
     for (int i = r; i-- > l;) {
       int idx = (std::abs(a[i]) / exp) % base;
@@ -84,8 +84,8 @@ void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& a, int l, i
     tmp[k++] = a[j++];
   }
   for (int t = 1; t + 1 < n; t += 2) {
-    if (tmp[t] > tmp[t+1]) {
-      std::swap(tmp[t], tmp[t+1]);
+    if (tmp[t] > tmp[t + 1]) {
+      std::swap(tmp[t], tmp[t + 1]);
     }
   }
   std::copy(tmp.begin(), tmp.end(), a.begin() + l);
@@ -97,26 +97,26 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& a)
     return;
   }
   int threads = tbb::this_task_arena::max_concurrency();
-  std::vector<int> bounds(threads+1);
+  std::vector<int> bounds(threads + 1);
   for (int t = 0; t <= threads; ++t) {
     bounds[t] = (n * t) / threads;
   }
   tbb::parallel_for(tbb::blocked_range<int>(0, threads), [&](auto& range) {
     for (int t = range.begin(); t < range.end(); ++t) {
-      RadixSort(a, bounds[t], bounds[t+1]);
+      RadixSort(a, bounds[t], bounds[t + 1]);
     }
   });
   int segs = threads;
   while (segs > 1) {
     int pairs = segs / 2;
     tbb::parallel_for(0, pairs, [&](int p) {
-      int l = bounds[2*p];
-      int m = bounds[2*p+1];
-      int r = bounds[2*p+2];
+      int l = bounds[2 * p];
+      int m = bounds[2 * p + 1];
+      int r = bounds[2 * p + 2];
       OddEvenMerge(a, l, m, r);
     });
     for (int i = 0; i < pairs; ++i) {
-      bounds[i] = bounds[2*i];
+      bounds[i] = bounds[2 * i];
     }
     if (segs % 2 == 1) {
       bounds[pairs] = bounds[segs];
