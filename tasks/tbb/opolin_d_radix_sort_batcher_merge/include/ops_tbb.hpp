@@ -6,9 +6,9 @@
 #include "core/task/include/task.hpp"
 
 namespace opolin_d_radix_batcher_sort_tbb {
-void BatcherMergeRadixSort(std::vector<int>& arr);
-void RadixSort(std::vector<int>& arr, int exp);
-void parallelOddEvenMerge(std::vector<int>& arr, int lo, int hi);
+void BatcherMergeRadixSort(std::vector<int>& a);
+void RadixSort(std::vector<int>& a, int l, int r);
+void OddEvenMerge(std::vector<int>& a, int l, int m, int r);
 
 class RadixBatcherSortTaskTbb : public ppc::core::Task {
  public:

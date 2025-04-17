@@ -41,101 +41,87 @@ bool opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::PostProcessingImp
   return true;
 }
 
-void opolin_d_radix_batcher_sort_tbb::RadixSort(std::vector<int>& arr, int exp) {
-  const std::size_t n = arr.size();
-  std::vector<int> output(n);
-  std::vector<int> count(10, 0);
-  tbb::mutex count_mutex;
-
-  tbb::parallel_for(tbb::blocked_range<std::size_t>(0, n), [&](const tbb::blocked_range<std::size_t>& r) {
-    std::vector<int> local_count(10, 0);
-    for (std::size_t i = r.begin(); i != r.end(); ++i) {
-      local_count[(arr[i] / exp) % 10]++;
-    }
-    tbb::mutex::scoped_lock lock(count_mutex);
-    for (int i = 0; i < 10; ++i) {
-      count[i] += local_count[i];
-    }
-  });
-
-  // Accumulate the counts
-  for (int i = 1; i < 10; i++) {
-    count[i] += count[i - 1];
-  }
-  // Sort based on current digit
-  tbb::parallel_for(tbb::blocked_range<std::size_t>(0, n), [&](const tbb::blocked_range<std::size_t>& r) {
-    for (std::size_t i = r.end(); i-- > r.begin();) {
-      int index = (arr[i] / exp) % 10;
-      tbb::mutex::scoped_lock lock(count_mutex);
-      output[--count[index]] = arr[i];
-    }
-  });
-
-  tbb::parallel_for(tbb::blocked_range<std::size_t>(0, n), [&](const tbb::blocked_range<std::size_t>& r) {
-    for (std::size_t i = r.begin(); i != r.end(); ++i) {
-      arr[i] = output[i];
-    }
-  });
-}
-
-void opolin_d_radix_batcher_sort_tbb::parallelOddEvenMerge(std::vector<int>& arr, int lo, int hi) {
-  int n = hi - lo + 1;
-  int r = 1;
-  while (r < n) {
-    r = r << 1;
-  }
-  std::vector<int> b(n);
-  for (int i = 0; i < n; i++) {
-    b[i] = arr[lo + i];
-  }
-  for (int s = 1; s <= r; s = s * 2) {
-    int d = s * 2;
-    tbb::parallel_for(0, n / d + (n % d != 0), [&](int i) {
-      int i_d = i * d;
-      int l = i_d;
-      int m = std::min(i_d + s, n);
-      int h = std::min(i_d + d, n);
-      int p = l;
-      int q = m;
-      int t = 0;
-      std::vector<int> tmp(h - l);
-      while (p < m && q < h) {
-        if (b[p] <= b[q]) {
-          tmp[t++] = b[p++];
-        } else {
-          tmp[t++] = b[q++];
-        }
-      }
-      while (p < m) {
-        tmp[t++] = b[p++];
-      }
-      while (q < h) {
-        tmp[t++] = b[q++];
-      }
-      for (int i = 0; i < t; i++) {
-        b[l + i] = tmp[i];
-      }
-    });
-  }
-  for (int i = 0; i < n; i++) {
-    arr[lo + i] = b[i];
-  }
-}
-
-void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& arr) {
-  size_t n = arr.size();
-  if (n <= 1) {
+void opolin_d_radix_batcher_sort_tbb::RadixSort(std::vector<int>& a, int l, int r) {
+  if (r - l < 2) {
     return;
   }
+  int maxv = 0;
+  for (int i = l; i < r; ++i) {
+    maxv = std::max(maxv, std::abs(a[i]));
+  }
+  int digits = (maxv == 0 ? 1 : static_cast<int>(std::log10(maxv)) + 1);
+  std::vector<int> buf(r - l);
+  const int base = 10;
+  for (int d = 0, exp = 1; d < digits; ++d, exp *= base) {
+    std::array<int, base> cnt{};
+    for (int i = l; i < r; ++i) {
+      cnt[(std::abs(a[i]) / exp) % base]++;
+    }
+    for (int i = 1; i < base; ++i) {
+      cnt[i] += cnt[i-1];
+    }
+    for (int i = r; i-- > l;) {
+      int idx = (std::abs(a[i]) / exp) % base;
+      buf[--cnt[idx]] = a[i];
+    }
+    for (int i = l, j = 0; i < r; ++i, ++j) {
+      a[i] = buf[j];
+    }
+  }
+}
 
-  int max_val = 0;
-  for (int val : arr) {
-    max_val = std::max(max_val, std::abs(val));
+void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& a, int l, int m, int r) {
+  int n = r - l;
+  std::vector<int> tmp(n);
+  int i = l, j = m, k = 0;
+  while (i < m && j < r) {
+    tmp[k++] = (a[i] <= a[j] ? a[i++] : a[j++]);
   }
-  int num_digits = (max_val == 0) ? 1 : static_cast<int>(std::log10(max_val)) + 1;
-  for (int digit = 0; digit < num_digits; ++digit) {
-    int exp = static_cast<int>(std::pow(10, digit));
-    RadixSort(arr, exp);
+  while (i < m) {
+    tmp[k++] = a[i++];
   }
-  parallelOddEvenMerge(arr, 0, n - 1);
+  while (j < r) {
+    tmp[k++] = a[j++];
+  }
+  for (int t = 1; t + 1 < n; t += 2) {
+    if (tmp[t] > tmp[t+1]) {
+      std::swap(tmp[t], tmp[t+1]);
+    }
+  }
+  std::copy(tmp.begin(), tmp.end(), a.begin() + l);
+}
+
+void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& a) {
+  int n = static_cast<int>(a.size());
+  if (n < 2) {
+    return;
+  }
+  int threads = tbb::this_task_arena::max_concurrency();
+  std::vector<int> bounds(threads+1);
+  for (int t = 0; t <= threads; ++t) {
+    bounds[t] = (n * t) / threads;
+  }
+  tbb::parallel_for(tbb::blocked_range<int>(0, threads), [&](auto& range) {
+    for (int t = range.begin(); t < range.end(); ++t) {
+      RadixSort(a, bounds[t], bounds[t+1]);
+    }
+  });
+  int segs = threads;
+  while (segs > 1) {
+    int pairs = segs / 2;
+    tbb::parallel_for(0, pairs, [&](int p) {
+      int l = bounds[2*p];
+      int m = bounds[2*p+1];
+      int r = bounds[2*p+2];
+      OddEvenMerge(a, l, m, r);
+    });
+    for (int i = 0; i < pairs; ++i) {
+      bounds[i] = bounds[2*i];
+    }
+    if (segs % 2 == 1) {
+      bounds[pairs] = bounds[segs];
+    }
+    segs = pairs + (segs % 2);
+    bounds[segs] = n;
+  }
 }
