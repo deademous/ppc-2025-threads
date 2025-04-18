@@ -93,11 +93,10 @@ void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& a, int l, i
   if (n <= 1) {
     return;
   }
-  tbb::parallel_invoke(
-    [&]{ OddEvenMerge(a, l, m); }, [&]{ OddEvenMerge(a, m+1, r); });
+  tbb::parallel_invoke([&] { OddEvenMerge(a, l, m); }, [&] { OddEvenMerge(a, m + 1, r); });
   for (int i = l + 1; i + 1 <= r; i += 2) {
-    if (a[i] > a[i+1]) {
-      std::swap(a[i], a[i+1]);
+    if (a[i] > a[i + 1]) {
+      std::swap(a[i], a[i + 1]);
     }
   }
 }
@@ -116,5 +115,5 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& a)
       RadixSort(a, start, end);
     }
   });
-  OddEvenMerge(a, 0, n-1);
+  OddEvenMerge(a, 0, n - 1);
 }
