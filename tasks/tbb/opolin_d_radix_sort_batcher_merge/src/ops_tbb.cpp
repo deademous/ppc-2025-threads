@@ -123,9 +123,8 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& a)
   if (n <= 1) {
     return;
   }
-  int num_threads = tbb::task_scheduler_init::default_num_threads();
+  int num_threads = tbb::this_task_arena::max_concurrency();
   int chunk_size = std::max(1, n / num_threads);
-
   tbb::parallel_for(tbb::blocked_range<int>(0, n, chunk_size), [&](const tbb::blocked_range<int>& r) {
     int start = r.begin();
     int end = std::min(r.end() - 1, n - 1);
