@@ -77,10 +77,7 @@ void opolin_d_radix_batcher_sort_tbb::RadixSort(std::vector<int>& a, int l, int 
       negative.push_back(-a[i]);
     }
   }
-  tbb::parallel_invoke(
-    [&]() { SortByDigit(positive); },
-    [&]() { SortByDigit(negative); }
-  );
+  tbb::parallel_invoke([&]() { SortByDigit(positive); }, [&]() { SortByDigit(negative); });
   std::reverse(negative.begin(), negative.end());
   size_t idx = l;
   for (int num : negative) {
@@ -109,10 +106,8 @@ void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& a, int l, i
     even.push_back(a[i]);
     if (i + 1 <= r) odd.push_back(a[i + 1]);
   }
-  tbb::parallel_invoke(
-    [&]() { OddEvenMerge(a, l, (l + mid) / 2, mid); },
-    [&]() { OddEvenMerge(a, mid + 1, (mid + 1 + r) / 2, r); }
-  );
+  tbb::parallel_invoke([&]() { OddEvenMerge(a, l, (l + mid) / 2, mid); },
+                       [&]() { OddEvenMerge(a, mid + 1, (mid + 1 + r) / 2, r); });
   tbb::parallel_for(tbb::blocked_range<int>(l, mid + 1), [&](const tbb::blocked_range<int>& range) {
     for (int i = range.begin(); i < range.end(); ++i) {
       int j = i + (mid - l) + 1;
