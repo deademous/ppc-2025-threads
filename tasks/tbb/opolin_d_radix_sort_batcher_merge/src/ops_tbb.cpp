@@ -66,7 +66,7 @@ void RadixSort(std::vector<uint32_t>& vec) {
       cnt[(vec[i] >> shift) & 255]++;
     }
     for (int i = 1; i < 256; ++i) {
-      cnt[i] += cnt[i-1];
+      cnt[i] += cnt[i - 1]
     }
     for (int i = int(n) - 1; i >= 0; --i) {
       uint32_t byte = (vec[i] >> shift) & 255u;
@@ -79,10 +79,7 @@ void RadixSort(std::vector<uint32_t>& vec) {
 void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec, int left, int n, int step) {
   int m = 2 * step;
   if (m < n) {
-    tbb::parallel_invoke(
-      [&]{ OddEvenMerge(vec, left, n, m); },
-      [&]{ OddEvenMerge(vec, left + step, n, m); }
-    );
+    tbb::parallel_invoke([&] { OddEvenMerge(vec, left, n, m); }, [&] { OddEvenMerge(vec, left + step, n, m); });
     for (int i = left + step; i + step < left + n; i += m) {
       if (vec[i] > vec[i + step]) {
         std::swap(vec[i], vec[i + step]);
@@ -98,10 +95,7 @@ void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec, int le
 void opolin_d_radix_batcher_sort_tbb::OddEvenMergeSort(std::vector<int>& vec, int left, int n) {
   if (n > 1) {
     int m = n / 2;
-    tbb::parallel_invoke(
-      [&]{ OddEvenMergeSort(vec, left, m); },
-      [&]{ OddEvenMergeSort(vec, left + m, m); }
-    );
+    tbb::parallel_invoke([&] { OddEvenMergeSort(vec, left, m); }, [&] { OddEvenMergeSort(vec, left + m, m); });
     OddEvenMerge(vec, left, n, 1);
   }
 }
@@ -113,15 +107,12 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& ve
   }
   int threads = tbb::this_task_arena::max_concurrency();
   int chunk = std::max(1, (n + threads - 1) / threads);
-  tbb::parallel_for(
-    tbb::blocked_range<int>(0, n, chunk),
-    [&](const tbb::blocked_range<int>& range) {
-      int left = range.begin();
-      right = std::min(range.end(), n) - 1;
-      std::vector<int> sub(vec.begin() + left, vec.begin() + right + 1);
-      SortByDigit(sub);
-      std::copy(sub.begin(), sub.end(), vec.begin() + left);
-    }
-  );
+  tbb::parallel_for(tbb::blocked_range<int>(0, n, chunk), [&](const tbb::blocked_range<int>& range) {
+    int left = range.begin();
+    right = std::min(range.end(), n) - 1;
+    std::vector<int> sub(vec.begin() + left, vec.begin() + right + 1);
+    SortByDigit(sub);
+    std::copy(sub.begin(), sub.end(), vec.begin() + left);
+  });
   OddEvenMergeSort(vec, 0, n);
 }
