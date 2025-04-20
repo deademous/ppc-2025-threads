@@ -103,8 +103,8 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& ve
     return;
   }
   int threads = tbb::this_task_arena::max_concurrency();
-  int chunk = std::max(1, (n + threads - 1) / threads);
-  tbb::parallel_for(tbb::blocked_range<int>(0, n, chunk), [&](const tbb::blocked_range<int>& range) {
+  int chunk_size = std::max(1, (n + threads - 1) / threads);
+  tbb::parallel_for(tbb::blocked_range<int>(0, n, chunk_size), [&](const tbb::blocked_range<int>& range) {
     int left = range.begin();
     int right = std::min(range.end(), n);
     std::vector<int> sub(vec.begin() + left, vec.begin() + right);
