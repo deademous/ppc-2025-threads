@@ -86,8 +86,10 @@ void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec, int le
       }
     }
   } else {
-    if (vec[left] > vec[left + step]) {
-      std::swap(vec[left], vec[left + step]);
+    if (left + step < static_cast<int>(vec.size())) {
+      if (vec[left] > vec[left + step]) {
+        std::swap(vec[left], vec[left + step]);
+      }
     }
   }
 }
