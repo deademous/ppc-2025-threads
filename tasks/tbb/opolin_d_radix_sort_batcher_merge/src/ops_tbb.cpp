@@ -83,9 +83,7 @@ void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec, int le
     }
   } else {
     if (left + step < size && vec[left] > vec[left + step]) {
-      if (vec[left] > vec[left + step]) {
-        std::swap(vec[left], vec[left + step]);
-      }
+      std::swap(vec[left], vec[left + step]);
     }
   }
 }
@@ -113,5 +111,18 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& ve
     SortByDigit(sub);
     std::copy(sub.begin(), sub.end(), vec.begin() + left);
   });
-  OddEvenMergeSort(vec, 0, n, n);
+  int current_run_size = chunk_size;
+  while (current_run_size < n) {
+    int merge_segment_size = 2 * current_run_size;
+    tbb::parallel_for(tbb::blocked_range<int>(0, n, merge_segment_size),
+      [&](const tbb::blocked_range<int>& range) {
+      int left = range.begin();
+      int right = std::min(left + merge_segment_size, n);
+      int segment_length = right - left;
+      if (segment_length > current_run_size) {
+         OddEvenMergeSort(vec, left, segment_length, n);
+      }
+    });
+    current_run_size = merge_segment_size;
+  }
 }
