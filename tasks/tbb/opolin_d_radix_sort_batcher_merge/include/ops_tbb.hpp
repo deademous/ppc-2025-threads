@@ -1,14 +1,16 @@
 #pragma once
 
+#include <cstdint>
 #include <utility>
 #include <vector>
 
 #include "core/task/include/task.hpp"
 
 namespace opolin_d_radix_batcher_sort_tbb {
-void BatcherMergeRadixSort(std::vector<int>& a);
-void RadixSort(std::vector<int>& a, int l, int r);
-void OddEvenMerge(std::vector<int>& a, int l, int r);
+void BatcherMergeRadixSort(std::vector<int>& vec);
+void RadixSort(std::vector<uint32_t>& vec);
+void OddEvenMerge(std::vector<int>& vec, int left, int n, int step);
+void OddEvenMergeSort(std::vector<int>& vec, int left, int n);
 void SortByDigit(std::vector<int>& vec);
 
 class RadixBatcherSortTaskTbb : public ppc::core::Task {
