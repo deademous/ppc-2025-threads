@@ -138,6 +138,6 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& ve
       current_run_size = n;
     } else {
       current_run_size = merge_segment_size;
-    }  
+    }
   }
 }
