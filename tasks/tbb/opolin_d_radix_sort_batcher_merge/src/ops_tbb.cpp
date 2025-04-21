@@ -71,14 +71,16 @@ void opolin_d_radix_batcher_sort_tbb::SortByDigit(std::vector<int>& vec) {
   }
 }
 
-void opolin_d_radix_batcher_sort_tbb::CompExch(int &a, int &b) {
+void opolin_d_radix_batcher_sort_tbb::CompExch(int& a, int& b) {
   if (a > b) {
     std::swap(a, b);
   }
 }
 
-void opolin_d_radix_batcher_sort_tbb::BatcherSortNetwork(std::vector<int> &arr, int l, int r) {
-  if (l >= r) return;
+void opolin_d_radix_batcher_sort_tbb::BatcherSortNetwork(std::vector<int>& arr, int l, int r) {
+  if (l >= r) {
+    return;
+  }
   int n = r - l + 1;
   for (int p = 1; p < n; p += p) {
     for (int k = p; k > 0; k /= 2) {
