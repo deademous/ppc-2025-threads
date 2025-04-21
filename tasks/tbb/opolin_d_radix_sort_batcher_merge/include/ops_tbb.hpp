@@ -8,8 +8,8 @@
 
 namespace opolin_d_radix_batcher_sort_tbb {
 void BatcherMergeRadixSort(std::vector<int>& vec);
-void CompExch(int &a, int &b);
-void BatcherSortNetwork(std::vector<int> &arr, int l, int r);
+void CompExch(int& a, int& b);
+void BatcherSortNetwork(std::vector<int>& arr, int l, int r);
 void SortByDigit(std::vector<int>& vec);
 
 class RadixBatcherSortTaskTbb : public ppc::core::Task {
