@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <utility>
 #include <vector>
 
@@ -8,8 +7,8 @@
 
 namespace opolin_d_radix_batcher_sort_tbb {
 void BatcherMergeRadixSort(std::vector<int>& vec);
-void CompExch(int& a, int& b);
-void BatcherSortNetwork(std::vector<int>& arr, int l, int r);
+void OddEvenMerge(std::vector<int>& vec, int left, int n, int step);
+void OddEvenMergeSort(std::vector<int>& vec, int left, int n);
 void SortByDigit(std::vector<int>& vec);
 
 class RadixBatcherSortTaskTbb : public ppc::core::Task {
