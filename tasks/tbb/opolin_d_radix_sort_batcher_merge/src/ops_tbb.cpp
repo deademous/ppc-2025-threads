@@ -89,7 +89,8 @@ void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec, int st
   }
   int n = end - start;
   tbb::parallel_invoke([&] { OddEvenMerge(vec, start, (start + mid) / 2, mid); },
-                       [&] { OddEvenMerge(vec, mid, (mid + end) / 2, end); });  for (int step = 1; step < n; step *= 2) {
+                       [&] { OddEvenMerge(vec, mid, (mid + end) / 2, end); });
+  for (int step = 1; step < n; step *= 2) {
     tbb::parallel_for(tbb::blocked_range<int>(0, n / (2 * step)), [&](const tbb::blocked_range<int>& r) {
       for (int i = r.begin(); i != r.end(); ++i) {
         int left = start + 2 * step * i;
