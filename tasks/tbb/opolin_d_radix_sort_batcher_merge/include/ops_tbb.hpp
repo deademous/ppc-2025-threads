@@ -7,7 +7,8 @@
 
 namespace opolin_d_radix_batcher_sort_tbb {
 void BatcherMergeRadixSort(std::vector<int>& vec);
-void OddEvenMerge(std::vector<int>& vec, int start, int mid, int end);
+void OddEvenMerge(std::vector<int>& vec, int left, int n, int step, int size);
+void OddEvenMergeSort(std::vector<int>& vec, int left, int n, int size);
 void SortByDigit(std::vector<int>& vec);
 
 class RadixBatcherSortTaskTbb : public ppc::core::Task {
