@@ -53,7 +53,6 @@ void opolin_d_radix_batcher_sort_tbb::SortByDigit(std::vector<int>& vec) {
   for (size_t i = 0; i < n; i++) {
     uns_vec[i] = static_cast<uint32_t>(vec[i]) ^ sign_mask;
   }
-  std::vector<uint32_t> buf(vec.size());
   for (int shift = 0; shift < 32; shift += 8) {
     std::vector<size_t> cnt(256, 0);
     for (size_t i = 0; i < uns_vec.size(); i++) {
