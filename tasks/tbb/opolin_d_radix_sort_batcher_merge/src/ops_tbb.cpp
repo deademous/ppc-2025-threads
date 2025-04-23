@@ -46,20 +46,23 @@ void opolin_d_radix_batcher_sort_tbb::SortByDigit(std::vector<int>& vec) {
   if (vec.size() <= 1) {
     return;
   }
-  std::vector<uint32_t> uns_vec(vec.size());
-  for (std::size_t i = 0; i < vec.size(); i++) {
-    uns_vec[i] = static_cast<uint32_t>(vec[i]) ^ 0x80000000u;
+  size_t n = vec.size();
+  std::vector<uint32_t> uns_vec(n);
+  std::vector<uint32_t> buf(n);
+  uint32_t sign_mask = 0x80000000u;
+  for (size_t i = 0; i < n; i++) {
+    uns_vec[i] = static_cast<uint32_t>(vec[i]) ^ sign_mask;
   }
   std::vector<uint32_t> buf(vec.size());
   for (int shift = 0; shift < 32; shift += 8) {
-    int cnt[256] = {};
-    for (std::size_t i = 0; i < uns_vec.size(); i++) {
+    std::vector<size_t> cnt(256, 0);
+    for (size_t i = 0; i < uns_vec.size(); i++) {
       cnt[(uns_vec[i] >> shift) & 255]++;
     }
-    for (std::size_t i = 1; i < 256; i++) {
+    for (size_t i = 1; i < 256; i++) {
       cnt[i] += cnt[i - 1];
     }
-    for (std::size_t i = uns_vec.size(); i-- > 0;) {
+    for (size_t i = uns_vec.size(); i-- > 0;) {
       uint32_t byte = (uns_vec[i] >> shift) & 255u;
       buf[cnt[byte] - 1] = uns_vec[i];
       cnt[byte]--;
@@ -67,7 +70,7 @@ void opolin_d_radix_batcher_sort_tbb::SortByDigit(std::vector<int>& vec) {
     uns_vec.swap(buf);
   }
   for (std::size_t i = 0; i < vec.size(); i++) {
-    vec[i] = static_cast<int>(uns_vec[i] ^ 0x80000000u);
+    vec[i] = static_cast<int>(uns_vec[i] ^ sign_mask);
   }
 }
 
@@ -81,20 +84,20 @@ void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec, int le
                          [&] { OddEvenMerge(vec, left + step, n, m, size); });
   }
   if (step < n) {
-    int end_i = left + n;
-    int num_comparisons_possible = (n > step) ? (n - step) : 0;
-    int iterations_needed = (num_comparisons_possible > 0) ? ((num_comparisons_possible - 1) / m + 1) : 0;
-    if (iterations_needed > 0) {
-      tbb::parallel_for(tbb::blocked_range<int>(0, iterations_needed), [&](const tbb::blocked_range<int>& r) {
-        for (int k = r.begin(); k < r.end(); ++k) {
-          int i = left + step + k * m;
-          if (i + step < end_i && i + step < size) {
-            if (vec[i] > vec[i + step]) {
-              std::swap(vec[i], vec[i + step]);
-            }
-          }
+    int end_i_loop = left + n - step;
+    for (int i = left; i < end_i_loop; i += m) {
+      if (i + step < size) {
+        if (vec[i] > vec[i + step]) {
+          std::swap(vec[i], vec[i + step]);
         }
-      });
+      }
+    }
+    for (int i = left + step; i < end_i_loop; i += m) {
+      if (i + step < size) {
+        if (vec[i] > vec[i + step]) {
+          std::swap(vec[i], vec[i + step]);
+        }
+      }
     }
   }
 }
