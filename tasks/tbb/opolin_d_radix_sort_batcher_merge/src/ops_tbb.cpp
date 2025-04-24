@@ -101,8 +101,8 @@ void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec, int le
                   }
                 },
                 tbb::simple_partitioner{});
-            }
-    },
+          }
+        },
         [&] {
           int start_loop2 = left + step;
           int num_blocks = (compare_swap_bound > start_loop2) ? ((compare_swap_bound - 1 - start_loop2) / m + 1) : 0;
@@ -120,7 +120,7 @@ void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec, int le
                   }
                 },
                 tbb::simple_partitioner{});
-            }
+          }
         });
   }
 }
