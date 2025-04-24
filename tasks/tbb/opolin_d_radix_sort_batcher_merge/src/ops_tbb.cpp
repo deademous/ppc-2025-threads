@@ -74,30 +74,51 @@ void opolin_d_radix_batcher_sort_tbb::SortByDigit(std::vector<int>& vec) {
 }
 
 void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec, int left, int n, int step, int size) {
-  if (step <= 0) {
+  if (step <= 0 || n <= 1) {
     return;
   }
   int m = 2 * step;
   if (m < n) {
-    tbb::parallel_invoke([&] { OddEvenMerge(vec, left, n, m, size); },
-                         [&] { OddEvenMerge(vec, left + step, n, m, size); });
+    tbb::parallel_invoke(
+      [&] { OddEvenMerge(vec, left, n, m, size); },
+      [&] { OddEvenMerge(vec, left + step, n, m, size); }
+    );
   }
   if (step < n) {
-    int end_i_loop = left + n - step;
-    for (int i = left; i < end_i_loop; i += m) {
-      if (i + step < size) {
-        if (vec[i] > vec[i + step]) {
-          std::swap(vec[i], vec[i + step]);
-        }
+    int compare_swap_bound = left + n - step;
+    tbb::parallel_invoke([&] {
+      int num_blocks = (compare_swap_bound > left) ? ((compare_swap_bound - 1 - left) / m + 1) : 0;
+      if (num_blocks > 0) {
+        tbb::parallel_for(tbb::blocked_range<int>(0, num_blocks),
+        [&](const tbb::blocked_range<int>& r) {
+          for(int k = r.begin(); k < r.end(); ++k) {
+            int i = left + k * m;
+            if (i + step < size) {
+              if (vec[i] > vec[i + step]) {
+                std::swap(vec[i], vec[i + step]);
+              }               
+            }
+          }
+        }, tbb::simple_partitioner{});
       }
-    }
-    for (int i = left + step; i < end_i_loop; i += m) {
-      if (i + step < size) {
-        if (vec[i] > vec[i + step]) {
-          std::swap(vec[i], vec[i + step]);
-        }
+    },
+    [&] {
+      int start_loop2 = left + step;
+      int num_blocks = (compare_swap_bound > start_loop2) ? ((compare_swap_bound - 1 - start_loop2) / m + 1) : 0;
+      if (num_blocks > 0) {
+        tbb::parallel_for(tbb::blocked_range<int>(0, num_blocks),
+        [&](const tbb::blocked_range<int>& r) {
+          for(int k = r.begin(); k < r.end(); ++k) {
+            int i = start_loop2 + k * m;
+            if (i + step < size) {
+              if (vec[i] > vec[i + step]) {
+                std::swap(vec[i], vec[i + step]);
+              }
+            }
+          }
+        }, tbb::simple_partitioner{});
       }
-    }
+    });
   }
 }
 
