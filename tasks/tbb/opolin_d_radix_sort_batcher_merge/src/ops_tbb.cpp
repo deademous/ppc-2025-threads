@@ -78,8 +78,7 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& ve
   if (n <= 1) return;
   const int max_threads = tbb::this_task_arena::max_concurrency();
   const size_t block_size = std::max<size_t>(1, n / max_threads);
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, n, block_size),
-    [&](const tbb::blocked_range<size_t>& r) {
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, n, block_size), [&](const tbb::blocked_range<size_t>& r) {
     auto start = vec.begin() + r.begin();
     auto end = vec.begin() + r.end();
     std::vector<int> block(start, end);
@@ -88,8 +87,7 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& ve
   });
   for (size_t step = block_size; step < n; step *= 2) {
     const size_t pair_step = step * 2;
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, n / pair_step + 1),
-    [&](const tbb::blocked_range<size_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, n / pair_step + 1), [&](const tbb::blocked_range<size_t>& r) {
       for (size_t i = r.begin(); i < r.end(); ++i) {
         size_t left = i * pair_step;
         size_t mid = left + step;
@@ -107,11 +105,9 @@ void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec, size_t
   size_t mid = n / 2;
   size_t even_size = mid + (n % 2);
   size_t odd_size = mid;
-  tbb::parallel_invoke(
-  [&] { OddEvenMerge(vec, low, even_size); },
-  [&] { OddEvenMerge(vec, low + even_size, odd_size); });
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, mid),
-  [&](const tbb::blocked_range<size_t>& r) {
+  tbb::parallel_invoke([&] { OddEvenMerge(vec, low, even_size); },
+                       [&] { OddEvenMerge(vec, low + even_size, odd_size); });
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, mid), [&](const tbb::blocked_range<size_t>& r) {
     for (size_t i = r.begin(); i < r.end(); ++i) {
       size_t idx_even = low + 2 * i;
       size_t idx_odd = idx_even + 1;
