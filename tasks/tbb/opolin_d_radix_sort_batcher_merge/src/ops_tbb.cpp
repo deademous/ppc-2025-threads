@@ -80,12 +80,11 @@ void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec) {
   }
   for (size_t step = 1; step < n; step *= 2) {
     const size_t block_size = 2 * step;
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, n, block_size),
-    [&](const tbb::blocked_range<size_t>& range) {
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, n, block_size), [&](const tbb::blocked_range<size_t>& range) {
       for (size_t left = range.begin(); left < range.end(); ++left) {
         const size_t mid = std::min(left + step, n);
         const size_t right = std::min(left + block_size, n);
-        if (mid < right) { 
+        if (mid < right) {
           std::inplace_merge(arr.begin() + left, arr.begin() + mid, arr.begin() + right);
         }
       }
