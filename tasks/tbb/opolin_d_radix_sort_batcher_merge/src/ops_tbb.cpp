@@ -82,8 +82,6 @@ uint32_t opolin_d_radix_batcher_sort_tbb::ConvertKey(int num) {
 }
 
 void opolin_d_radix_batcher_sort_tbb::BatcherMerge(std::vector<int>& arr, size_t l, size_t m, size_t r) {
-  size_t n1 = m - l + 1;
-  size_t n2 = r - m;
   tbb::parallel_invoke([&] { std::sort(arr.begin() + l, arr.begin() + m + 1); },
                        [&] { std::sort(arr.begin() + m + 1, arr.begin() + r + 1); });
   std::vector<int> temp(r - l + 1);
