@@ -77,20 +77,32 @@ void opolin_d_radix_batcher_sort_tbb::SortByDigit(std::vector<int>& vec) {
   }
 }
 
-void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec) {
-  const size_t n = vec.size();
-  if (n <= 1) {
+void opolin_d_radix_batcher_sort_tbb::MergeBlocksStep(std::pair<int *, int> &left, std::pair<int *, int> &right) {
+  std::inplace_merge(left.first, right.first, right.first + right.second);
+  left.second += right.second;
+}
+
+void opolin_d_radix_batcher_sort_tbb::ParallelBatcherMergeBlocks(std::vector<int>& arr, int num_threads) {
+  const int sz = static_cast<int>(arr.size());
+  if (sz <= 1) {
     return;
   }
-  for (size_t step = 1; step < n; step *= 2) {
-    const size_t block_size = 2 * step;
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, n, block_size),
-                      [&](const tbb::blocked_range<size_t>& range) {
-      for (size_t left = range.begin(); left < range.end(); ++left) {
-        const size_t mid = std::min(left + step, n);
-        const size_t right = std::min(left + block_size, n);
-        if (mid < right) {
-          std::inplace_merge(arr.begin() + left, arr.begin() + mid, arr.begin() + right);
+  const int bsz = sz / num_threads;
+  const int bex = sz % num_threads;
+  std::vector<std::pair<int *, int>> vb(num_threads);
+  int current_pos = 0;
+  for (int i = 0; i < num_threads; ++i) {
+    int current_bsz = bsz + (i < bex ? 1 : 0);
+    vb[i] = std::make_pair(arr.data() + current_pos, current_bsz);
+    current_pos += current_bsz;
+  }
+  for (int step = 1; step < num_threads; step *= 2) {
+    const int merge_block_size = 2 * step;
+    tbb::parallel_for(tbb::blocked_range<int>(0, num_threads, merge_block_size),
+                      [&](const tbb::blocked_range<int>& range) {
+      for (int i = range.begin(); i < range.end(); i += merge_block_size) {
+        if (i + step < num_threads) {
+           MergeBlocksStep(vb[i], vb[i + step]);
         }
       }
     });
@@ -104,7 +116,7 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& ve
   }
   int threads = tbb::this_task_arena::max_concurrency();
   int chunk_size = (n + threads - 1) / threads;
-  chunk_size = std::min(chunk_size, n);
+  chunk_size = std::max(1, std::min(chunk_size, n));
   tbb::parallel_for(tbb::blocked_range<int>(0, n, chunk_size), [&](const tbb::blocked_range<int>& range) {
     int left = range.begin();
     int current_n = range.end() - left;
@@ -114,5 +126,6 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& ve
       std::copy(sub_vec.begin(), sub_vec.end(), vec.begin() + left);
     }
   });
-  OddEvenMerge(vec);
+  int num_chunks = (n + chunk_size - 1) / chunk_size;
+  ParallelBatcherMergeBlocks(vec, num_chunks);
 }
