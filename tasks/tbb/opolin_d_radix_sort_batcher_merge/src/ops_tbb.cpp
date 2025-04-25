@@ -43,77 +43,89 @@ bool opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::PostProcessingImp
 }
 
 void opolin_d_radix_batcher_sort_tbb::SortByDigit(std::vector<int>& vec) {
-  if (vec.size() <= 1) {
+  if (vec.empty()) {
     return;
   }
-  size_t n = vec.size();
-  std::vector<uint32_t> uns_vec(n);
-  std::vector<uint32_t> buf(n);
-  uint32_t sign_mask = 0x80000000u;
-  for (size_t i = 0; i < n; i++) {
-    uns_vec[i] = static_cast<uint32_t>(vec[i]) ^ sign_mask;
-  }
+  std::vector<uint32_t> keys(vec.size());
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, vec.size()),
+                    [&](const tbb::blocked_range<size_t>& r) {
+                      for (size_t i = r.begin(); i < r.end(); ++i) {
+                        keys[i] = ConvertKey(vec[i]);
+                      }
+                    });
+  std::vector<uint32_t> buf(vec.size());
   for (int shift = 0; shift < 32; shift += 8) {
-    std::vector<size_t> cnt(256, 0);
-    for (size_t i = 0; i < uns_vec.size(); i++) {
-      cnt[(uns_vec[i] >> shift) & 255]++;
+    std::vector<size_t> count(256, 0);
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, keys.size()),
+                      [&](const tbb::blocked_range<size_t>& r) {
+                        for (size_t i = r.begin(); i < r.end(); ++i) {
+                          ++count[(keys[i] >> shift) & 0xFF];
+                        }
+                      });
+    for (size_t i = 1; i < 256; ++i) {
+      count[i] += count[i - 1];
     }
-    for (size_t i = 1; i < 256; i++) {
-      cnt[i] += cnt[i - 1];
+    for (size_t i = keys.size(); i-- > 0;) {
+      uint8_t byte = (keys[i] >> shift) & 0xFF;
+      buf[--count[byte]] = keys[i];
     }
-    for (size_t i = uns_vec.size(); i-- > 0;) {
-      uint32_t byte = (uns_vec[i] >> shift) & 255u;
-      buf[cnt[byte] - 1] = uns_vec[i];
-      cnt[byte]--;
-    }
-    uns_vec.swap(buf);
+    keys.swap(buf);
   }
-  for (std::size_t i = 0; i < vec.size(); i++) {
-    vec[i] = static_cast<int>(uns_vec[i] ^ sign_mask);
+
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, vec.size()),
+                    [&](const tbb::blocked_range<size_t>& r) {
+                      for (size_t i = r.begin(); i < r.end(); ++i) {
+                        vec[i] = static_cast<int>(keys[i] ^ ((keys[i] >> 31) >> 1));
+                      }
+                    });
+}
+
+uint32_t opolin_d_radix_batcher_sort_tbb::ConvertKey(int num) {
+  return static_cast<uint32_t>(num) ^ (static_cast<uint32_t>(num >> 31) >> 1);
+}
+
+void opolin_d_radix_batcher_sort_tbb::BatcherMerge(std::vector<int>& arr, size_t l, size_t m, size_t r) {
+  size_t n1 = m - l + 1;
+  size_t n2 = r - m;
+  tbb::parallel_invoke(
+      [&] { std::sort(arr.begin() + l, arr.begin() + m + 1); },
+      [&] { std::sort(arr.begin() + m + 1, arr.begin() + r + 1); });
+
+  std::vector<int> temp(r - l + 1);
+  size_t i = l, j = m + 1, k = 0;
+  while (i <= m && j <= r) {
+    temp[k++] = arr[i] <= arr[j] ? arr[i++] : arr[j++];
   }
+  while (i <= m) {
+    temp[k++] = arr[i++];
+  }
+  while (j <= r) {
+    temp[k++] = arr[j++];
+  }
+  std::copy(temp.begin(), temp.end(), arr.begin() + l);
 }
 
 void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& vec) {
   const size_t n = vec.size();
-  if (n <= 1) return;
-  const int max_threads = tbb::this_task_arena::max_concurrency();
-  const size_t block_size = std::max<size_t>(1, n / max_threads);
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, n, block_size), [&](const tbb::blocked_range<size_t>& r) {
-    auto start = vec.begin() + r.begin();
-    auto end = vec.begin() + r.end();
-    std::vector<int> block(start, end);
-    SortByDigit(block);
-    std::copy(block.begin(), block.end(), start);
-  });
-  for (size_t step = block_size; step < n; step *= 2) {
-    const size_t pair_step = step * 2;
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, n / pair_step + 1), [&](const tbb::blocked_range<size_t>& r) {
-      for (size_t i = r.begin(); i < r.end(); ++i) {
-        size_t left = i * pair_step;
-        size_t mid = left + step;
-        size_t right = std::min(left + pair_step, n);
-        if (mid < right) {
-          OddEvenMerge(vec, left, right - left);
-        }
-      }
-    });
+  if (n <= 1) {
+    return;
   }
-}
-
-void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec, size_t low, size_t n) {
-  if (n <= 1) return;
-  size_t mid = n / 2;
-  size_t even_size = mid + (n % 2);
-  size_t odd_size = mid;
-  tbb::parallel_invoke([&] { OddEvenMerge(vec, low, even_size); },
-                       [&] { OddEvenMerge(vec, low + even_size, odd_size); });
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, mid), [&](const tbb::blocked_range<size_t>& r) {
-    for (size_t i = r.begin(); i < r.end(); ++i) {
-      size_t idx_even = low + 2 * i;
-      size_t idx_odd = idx_even + 1;
-      if (idx_odd < low + n && vec[idx_even] > vec[idx_odd]) {
-        std::swap(vec[idx_even], vec[idx_odd]);
-      }
-    }
-  });
+  const size_t block_size = std::max<size_t>(1, n / tbb::this_task_arena::max_concurrency());
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, n, block_size),
+                    [&](const tbb::blocked_range<size_t>& r) {
+                      std::sort(vec.begin() + r.begin(), vec.begin() + r.end());
+                    });
+  for (size_t width = block_size; width < n; width *= 2) {
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, n / (2 * width) + 1),
+                      [&](const tbb::blocked_range<size_t>& r) {
+                        for (size_t i = r.begin(); i < r.end(); ++i) {
+                          size_t left = 2 * i * width;
+                          size_t mid = left + width - 1;
+                          size_t right = std::min(left + 2 * width - 1, n - 1);
+                          if (mid < right) {
+                            BatcherMerge(vec, left, mid, right);
+                          }
+                        }
+                      });
+  }
 }
