@@ -73,62 +73,51 @@ void opolin_d_radix_batcher_sort_tbb::SortByDigit(std::vector<int>& vec) {
   }
 }
 
-void opolin_d_radix_batcher_sort_tbb::CompareSwap(std::vector<int>& vec, size_t i, size_t j) {
-  if (vec[i] > vec[j]) {
-    std::swap(vec[i], vec[j]);
-  }
-}
-
-void opolin_d_radix_batcher_sort_tbb::OddEvenMergeStep(std::vector<int>& vec, size_t dist) {
-  size_t n = vec.size();
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, n - dist), [&](const tbb::blocked_range<size_t>& range) {
-    for (size_t i = range.begin(); i < range.end(); ++i) {
-      CompareSwap(vec, i, i + dist);
-    }
-  });
-}
-
-void opolin_d_radix_batcher_sort_tbb::BatcherMergeNetwork(std::vector<int>& vec) {
-  size_t n = vec.size();
-  if (n <= 1) {
-    return;
-  }
-  for (size_t p = 1; p < n; p <<= 1) {
-    for (size_t k = p; k >= 1; k >>= 1) {
-      tbb::parallel_for(tbb::blocked_range<size_t>(0, n - k), [&](const tbb::blocked_range<size_t>& r) {
-        for (size_t j = r.begin(); j < r.end(); ++j) {
-          bool in_same_block = ((j / (p * 2)) == ((j + k) / (p * 2)));
-          if (in_same_block && ((j & p) == 0)) {
-            CompareSwap(vec, j, j + k);
-          }
-        }
-      });
-    }
-  }
-}
-
 void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& vec) {
-  size_t n = vec.size();
-  if (n <= 1) {
-    return;
+  const size_t n = vec.size();
+  if (n <= 1) return;
+  const int max_threads = tbb::this_task_arena::max_concurrency();
+  const size_t block_size = std::max<size_t>(1, n / max_threads);
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, n, block_size),
+    [&](const tbb::blocked_range<size_t>& r) {
+    auto start = vec.begin() + r.begin();
+    auto end = vec.begin() + r.end();
+    std::vector<int> block(start, end);
+    SortByDigit(block);
+    std::copy(block.begin(), block.end(), start);
+  });
+  for (size_t step = block_size; step < n; step *= 2) {
+    const size_t pair_step = step * 2;
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, n / pair_step + 1),
+    [&](const tbb::blocked_range<size_t>& r) {
+      for (size_t i = r.begin(); i < r.end(); ++i) {
+        size_t left = i * pair_step;
+        size_t mid = left + step;
+        size_t right = std::min(left + pair_step, n);
+        if (mid < right) {
+          OddEvenMerge(vec, left, right - left);
+        }
+      }
+    });
   }
-  int max_threads = tbb::this_task_arena::max_concurrency();
-  size_t num_threads = static_cast<size_t>(max_threads);
-  num_threads = std::min(num_threads, n);
+}
 
-  size_t chunk_size = n / num_threads;
-  size_t remainder = n % num_threads;
-
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, num_threads), [&](const tbb::blocked_range<size_t>& r) {
+void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec, size_t low, size_t n) {
+  if (n <= 1) return;
+  size_t mid = n / 2;
+  size_t even_size = mid + (n % 2);
+  size_t odd_size = mid;
+  tbb::parallel_invoke(
+  [&] { OddEvenMerge(vec, low, even_size); },
+  [&] { OddEvenMerge(vec, low + even_size, odd_size); });
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, mid),
+  [&](const tbb::blocked_range<size_t>& r) {
     for (size_t i = r.begin(); i < r.end(); ++i) {
-      size_t start = i * chunk_size + std::min(i, remainder);
-      size_t end = start + chunk_size + (i < remainder ? 1 : 0);
-      if (start < end) {
-        std::vector<int> chunk(vec.begin() + start, vec.begin() + end);
-        SortByDigit(chunk);
-        std::copy(chunk.begin(), chunk.end(), vec.begin() + start);
+      size_t idx_even = low + 2 * i;
+      size_t idx_odd = idx_even + 1;
+      if (idx_odd < low + n && vec[idx_even] > vec[idx_odd]) {
+        std::swap(vec[idx_even], vec[idx_odd]);
       }
     }
   });
-  BatcherMergeNetwork(vec);
 }
