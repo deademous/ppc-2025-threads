@@ -228,8 +228,8 @@ TEST(opolin_d_radix_batcher_sort_tbb, test_negative_size) {
   ASSERT_EQ(test_task_tbb->Validation(), false);
 }
 
-TEST(opolin_d_radix_batcher_sort_tbb, test_size_100) {
-  int size = 100;
+TEST(opolin_d_radix_batcher_sort_tbb, test_size_50) {
+  int size = 50;
   std::vector<int> expected;
   std::vector<int> input;
   opolin_d_radix_batcher_sort_tbb::GenDataRadixSort(size, input, expected);

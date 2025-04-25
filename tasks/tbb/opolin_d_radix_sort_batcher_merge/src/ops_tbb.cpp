@@ -73,64 +73,54 @@ void opolin_d_radix_batcher_sort_tbb::SortByDigit(std::vector<int>& vec) {
   }
 }
 
-void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec, int left, int n, int step, int size) {
+void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec, int left, int n, int step) {
   if (step <= 0 || n <= 1) {
     return;
   }
   int m = 2 * step;
   if (m < n) {
-    tbb::parallel_invoke([&] { OddEvenMerge(vec, left, n, m, size); },
-                         [&] { OddEvenMerge(vec, left + step, n, m, size); });
+    tbb::parallel_invoke([&] { OddEvenMerge(vec, left, n, m); },
+                         [&] { OddEvenMerge(vec, left + step, n, m); });
   }
   if (step < n) {
-    int compare_swap_bound = left + n - step;
+    int upper_bound = left + n - step;
     tbb::parallel_invoke(
-        [&] {
-          int num_blocks = (compare_swap_bound > left) ? ((compare_swap_bound - 1 - left) / m + 1) : 0;
-          if (num_blocks > 0) {
-            tbb::parallel_for(
-                tbb::blocked_range<int>(0, num_blocks),
-                [&](const tbb::blocked_range<int>& r) {
-                  for (int k = r.begin(); k < r.end(); ++k) {
-                    int i = left + k * m;
-                    if (i + step < size) {
-                      if (vec[i] > vec[i + step]) {
-                        std::swap(vec[i], vec[i + step]);
-                      }
-                    }
+      [&] {
+        if (left < upper_bound) {
+          tbb::parallel_for(
+          tbb::blocked_range<int>(left, upper_bound, m),
+            [&](const tbb::blocked_range<int>& r) {
+                for (int i = r.begin(); i < r.end(); ++i) {
+                  if (vec[i] > vec[i + step]) {
+                    std::swap(vec[i], vec[i + step]);
                   }
-                },
-                tbb::simple_partitioner{});
+                }
+              }, tbb::simple_partitioner{});
           }
-        },
-        [&] {
-          int start_loop2 = left + step;
-          int num_blocks = (compare_swap_bound > start_loop2) ? ((compare_swap_bound - 1 - start_loop2) / m + 1) : 0;
-          if (num_blocks > 0) {
-            tbb::parallel_for(
-                tbb::blocked_range<int>(0, num_blocks),
-                [&](const tbb::blocked_range<int>& r) {
-                  for (int k = r.begin(); k < r.end(); ++k) {
-                    int i = start_loop2 + k * m;
-                    if (i + step < size) {
-                      if (vec[i] > vec[i + step]) {
-                        std::swap(vec[i], vec[i + step]);
-                      }
-                    }
-                  }
-                },
-                tbb::simple_partitioner{});
-          }
-        });
+      },
+      [&] {
+        if (left + step < upper_bound) {
+          tbb::parallel_for(
+          tbb::blocked_range<int>(left + step, upper_bound, m),
+          [&](const tbb::blocked_range<int>& r) {
+            for (int i = r.begin(); i < r.end(); ++i) {
+              if (vec[i] > vec[i + step]) {
+                std::swap(vec[i], vec[i + step]);
+              }
+            }
+          }, tbb::simple_partitioner{});
+        }
+      }
+  );
   }
 }
 
-void opolin_d_radix_batcher_sort_tbb::OddEvenMergeSort(std::vector<int>& vec, int left, int n, int size) {
+void opolin_d_radix_batcher_sort_tbb::OddEvenMergeSort(std::vector<int>& vec, int left, int n) {
   if (n > 1) {
     int m = (n + 1) / 2;
-    tbb::parallel_invoke([&] { OddEvenMergeSort(vec, left, m, size); },
-                         [&] { OddEvenMergeSort(vec, left + m, n - m, size); });
-    OddEvenMerge(vec, left, n, 1, size);
+    tbb::parallel_invoke([&] { OddEvenMergeSort(vec, left, m); },
+                         [&] { OddEvenMergeSort(vec, left + m, n - m); });
+    OddEvenMerge(vec, left, n, 1);
   }
 }
 
@@ -150,5 +140,5 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& ve
       std::copy(sub_vec.begin(), sub_vec.end(), vec.begin() + left);
     }
   });
-  OddEvenMergeSort(vec, 0, n, n);
+  OddEvenMergeSort(vec, 0, n);
 }
