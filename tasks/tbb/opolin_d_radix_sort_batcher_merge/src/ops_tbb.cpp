@@ -81,11 +81,10 @@ void opolin_d_radix_batcher_sort_tbb::CompareSwap(std::vector<int>& vec, size_t 
 
 void opolin_d_radix_batcher_sort_tbb::OddEvenMergeStep(std::vector<int>& vec, size_t dist) {
   size_t n = vec.size();
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, n - dist),
-      [&](const tbb::blocked_range<size_t>& range) {
-      for (size_t i = range.begin(); i < range.end(); ++i) {
-           CompareSwap(vec, i, i + dist);
-      }
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, n - dist), [&](const tbb::blocked_range<size_t>& range) {
+    for (size_t i = range.begin(); i < range.end(); ++i) {
+      CompareSwap(vec, i, i + dist);
+    }
   });
 }
 
@@ -96,8 +95,7 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeNetwork(std::vector<int>& vec)
   }
   for (size_t p = 1; p < n; p <<= 1) {
     for (size_t k = p; k >= 1; k >>= 1) {
-      tbb::parallel_for(tbb::blocked_range<size_t>(0, n - k),
-      [&](const tbb::blocked_range<size_t>& r) {
+      tbb::parallel_for(tbb::blocked_range<size_t>(0, n - k), [&](const tbb::blocked_range<size_t>& r) {
         for (size_t j = r.begin(); j < r.end(); ++j) {
           bool in_same_block = ((j / (p * 2)) == ((j + k) / (p * 2)));
           if (in_same_block && ((j & p) == 0)) {
@@ -121,18 +119,16 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& ve
   size_t chunk_size = n / num_threads;
   size_t remainder = n % num_threads;
 
-  tbb::parallel_for(
-    tbb::blocked_range<size_t>(0, num_threads),
-    [&](const tbb::blocked_range<size_t>& r) {
-      for (size_t i = r.begin(); i < r.end(); ++i) {
-        size_t start = i * chunk_size + std::min(i, remainder);
-        size_t end = start + chunk_size + (i < remainder ? 1 : 0);
-        if (start < end) {
-          std::vector<int> chunk(vec.begin() + start, vec.begin() + end);
-          SortByDigit(chunk);
-          std::copy(chunk.begin(), chunk.end(), vec.begin() + start);
-        }
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, num_threads), [&](const tbb::blocked_range<size_t>& r) {
+    for (size_t i = r.begin(); i < r.end(); ++i) {
+      size_t start = i * chunk_size + std::min(i, remainder);
+      size_t end = start + chunk_size + (i < remainder ? 1 : 0);
+      if (start < end) {
+        std::vector<int> chunk(vec.begin() + start, vec.begin() + end);
+        SortByDigit(chunk);
+        std::copy(chunk.begin(), chunk.end(), vec.begin() + start);
       }
-    });
+    }
+  });
   BatcherMergeNetwork(vec);
 }
