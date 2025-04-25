@@ -1,10 +1,9 @@
 #include "tbb/opolin_d_radix_sort_batcher_merge/include/ops_tbb.hpp"
 
-#include <tbb/tbb.h>
-
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <oneapi/tbb/task_arena.h>
+#include <tbb/tbb.h>
 
 #include <algorithm>
 #include <cmath>
@@ -77,7 +76,7 @@ void opolin_d_radix_batcher_sort_tbb::SortByDigit(std::vector<int>& vec) {
   }
 }
 
-void opolin_d_radix_batcher_sort_tbb::MergeBlocksStep(std::pair<int *, int> &left, std::pair<int *, int> &right) {
+void opolin_d_radix_batcher_sort_tbb::MergeBlocksStep(std::pair<int*, int>& left, std::pair<int*, int>& right) {
   std::inplace_merge(left.first, right.first, right.first + right.second);
   left.second += right.second;
 }
@@ -89,7 +88,7 @@ void opolin_d_radix_batcher_sort_tbb::ParallelBatcherMergeBlocks(std::vector<int
   }
   const int bsz = sz / num_threads;
   const int bex = sz % num_threads;
-  std::vector<std::pair<int *, int>> vb(num_threads);
+  std::vector<std::pair<int*, int>> vb(num_threads);
   int current_pos = 0;
   for (int i = 0; i < num_threads; ++i) {
     int current_bsz = bsz + (i < bex ? 1 : 0);
@@ -100,12 +99,12 @@ void opolin_d_radix_batcher_sort_tbb::ParallelBatcherMergeBlocks(std::vector<int
     const int merge_block_size = 2 * step;
     tbb::parallel_for(tbb::blocked_range<int>(0, num_threads, merge_block_size),
                       [&](const tbb::blocked_range<int>& range) {
-      for (int i = range.begin(); i < range.end(); i += merge_block_size) {
-        if (i + step < num_threads) {
-           MergeBlocksStep(vb[i], vb[i + step]);
-        }
-      }
-    });
+                        for (int i = range.begin(); i < range.end(); i += merge_block_size) {
+                          if (i + step < num_threads) {
+                            MergeBlocksStep(vb[i], vb[i + step]);
+                          }
+                        }
+                      });
   }
 }
 

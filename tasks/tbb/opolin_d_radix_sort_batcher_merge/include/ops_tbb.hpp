@@ -6,7 +6,7 @@
 #include "core/task/include/task.hpp"
 
 namespace opolin_d_radix_batcher_sort_tbb {
-void BatcherMergeRadixSort(std::vector<int>& vec);
+void BatcherMergeRadixSort(std::vector<int> &vec);
 void MergeBlocksStep(std::pair<int *, int> &left, std::pair<int *, int> &right);
 void ParallelBatcherMergeBlocks(std::vector<int> &arr, int num_threads);
 void SortByDigit(std::vector<int> &vec);
