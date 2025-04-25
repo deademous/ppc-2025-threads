@@ -74,7 +74,7 @@ void opolin_d_radix_batcher_sort_tbb::SortByDigit(std::vector<int>& vec) {
 }
 
 void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec) {
-  const size_t n = arr.size();
+  const size_t n = vec.size();
   if (n <= 1) {
     return;
   }
@@ -85,7 +85,7 @@ void opolin_d_radix_batcher_sort_tbb::OddEvenMerge(std::vector<int>& vec) {
         const size_t mid = std::min(left + step, n);
         const size_t right = std::min(left + block_size, n);
         if (mid < right) {
-          std::inplace_merge(arr.begin() + left, arr.begin() + mid, arr.begin() + right);
+          std::inplace_merge(vec.begin() + left, vec.begin() + mid, vec.begin() + right);
         }
       }
     });
