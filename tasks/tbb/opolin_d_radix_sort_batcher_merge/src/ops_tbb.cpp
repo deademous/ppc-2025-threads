@@ -112,21 +112,15 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& ve
     SortByDigit(block);
     std::copy(block.begin(), block.end(), start);
   });
-  for (size_t k = 2; k < 2 * n; k *= 2) {
-    for (size_t j = k / 2; j > 0; j /= 2) {
-      tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t>& r) {
-        for (size_t i = r.begin(); i < r.end(); ++i) {
-          size_t l = i ^ j;
-          if (l > i && l < n) {
-            if ((i & k) == 0 && vec[i] > vec[l]) {
-              std::swap(vec[i], vec[l]);
-            }
-            if ((i & k) != 0 && vec[i] < vec[l]) {
-              std::swap(vec[i], vec[l]);
-            }
-          }
+  for (size_t k = block_size; k < n; k *= 2) {
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, n / (2 * k) + 1), [&](const tbb::blocked_range<size_t>& r) {
+      for (size_t i = r.begin(); i < r.end(); ++i) {
+        size_t left = 2 * i * k;
+        size_t right = std::min(left + 2 * k, n);
+        if (left < right) {
+          BatcherMerge(vec, left, right - left);
         }
-      });
-    }
+      }
+    });
   }
 }
