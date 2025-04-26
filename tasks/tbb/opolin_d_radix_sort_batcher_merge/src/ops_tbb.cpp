@@ -30,8 +30,22 @@ bool opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::ValidationImpl() 
 }
 
 bool opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::RunImpl() {
-  output_ = input_;
-  BatcherMergeRadixSort(output_);
+  std::vector<uint32_t> keys(size_);
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, size_),
+  [&](const tbb::blocked_range<size_t>& r) {
+    for (size_t i = r.begin(); i < r.end(); ++i) {
+      keys[i] = ConvertIntToKey(input_[i]);
+    }
+  });
+  ParallelRadixSortInternal(keys);
+  output_.resize(size_);
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, size_),
+  [&](const tbb::blocked_range<size_t>& r) {
+    for (size_t i = r.begin(); i < r.end(); ++i) {
+      output_[i] = ConvertKeyToInt(keys[i]);
+    }
+  });
+  ParallelBatcherOddEvenMergeInternal(output_, 0, size_, size_);
   return true;
 }
 
@@ -42,85 +56,72 @@ bool opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::PostProcessingImp
   return true;
 }
 
-void opolin_d_radix_batcher_sort_tbb::SortByDigit(std::vector<int>& vec) {
-  if (vec.empty()) {
+uint32_t opolin_d_radix_batcher_sort_tbb::ConvertIntToKey(int num) {
+  return static_cast<uint32_t>(num) ^ 0x80000000U;
+}
+
+int opolin_d_radix_batcher_sort_tbb::ConvertKeyToInt(uint32_t key) {
+  return static_cast<int>(key ^ 0x80000000U);
+}
+
+void opolin_d_radix_batcher_sort_tbb::ParallelRadixSortInternal(std::vector<uint32_t>& keys) {
+  size_t n = keys.size();
+  if (n <= 1) {
     return;
   }
-  std::vector<uint32_t> keys(vec.size());
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, vec.size()), [&](const tbb::blocked_range<size_t>& r) {
-    for (size_t i = r.begin(); i < r.end(); ++i) {
-      keys[i] = ConvertKey(vec[i]);
-    }
-  });
-  std::vector<uint32_t> buf(vec.size());
-  for (int shift = 0; shift < 32; shift += 8) {
-    std::vector<size_t> count(256, 0);
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, keys.size()), [&](const tbb::blocked_range<size_t>& r) {
+  const int bits_per_pass = 8;
+  const int num_passes = sizeof(uint32_t);
+  const int radix = 1 << bits_per_pass;
+  std::vector<uint32_t> output_keys(n);
+  for (int pass = 0; pass < num_passes; ++pass) {
+    std::vector<std::atomic<size_t>> count(radix);
+    int shift = pass * bits_per_pass;
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, n),
+      [&](const tbb::blocked_range<size_t>& r) {
       for (size_t i = r.begin(); i < r.end(); ++i) {
-        ++count[(keys[i] >> shift) & 0xFF];
+        auto byte = static_cast<uint8_t>((keys[i] >> shift) & (radix - 1));
+        count[byte].fetch_add(1, std::memory_order_relaxed);
       }
     });
-    for (size_t i = 1; i < 256; ++i) {
-      count[i] += count[i - 1];
+    size_t current_sum = 0;
+    for (int j = 0; j < radix; ++j) {
+      size_t current_count = count[j].load(std::memory_order_relaxed);
+      count[j].store(current_sum, std::memory_order_relaxed);
+      current_sum += current_count;
     }
-    for (size_t i = keys.size(); i-- > 0;) {
-      uint8_t byte = (keys[i] >> shift) & 0xFF;
-      buf[--count[byte]] = keys[i];
-    }
-    keys.swap(buf);
-  }
-
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, vec.size()), [&](const tbb::blocked_range<size_t>& r) {
-    for (size_t i = r.begin(); i < r.end(); ++i) {
-      vec[i] = static_cast<int>(keys[i] ^ ((keys[i] >> 31) >> 1));
-    }
-  });
-}
-
-uint32_t opolin_d_radix_batcher_sort_tbb::ConvertKey(int num) {
-  return static_cast<uint32_t>(num) ^ (static_cast<uint32_t>(num >> 31) >> 1);
-}
-
-void opolin_d_radix_batcher_sort_tbb::BatcherMerge(std::vector<int>& arr, size_t low, size_t n) {
-  if (n <= 1) {
-    return;
-  }
-  size_t mid = n / 2;
-  tbb::parallel_invoke([&] { BatcherMerge(arr, low, mid); }, [&] { BatcherMerge(arr, low + mid, n - mid); });
-  size_t step = (n + 1) / 2;
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, step), [&](const tbb::blocked_range<size_t>& r) {
-    for (size_t i = r.begin(); i < r.end(); ++i) {
-      size_t idx1 = low + i * 2;
-      size_t idx2 = idx1 + step;
-      if (idx2 < low + n && arr[idx1] > arr[idx2]) {
-        std::swap(arr[idx1], arr[idx2]);
-      }
-    }
-  });
-}
-
-void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& vec) {
-  const size_t n = vec.size();
-  if (n <= 1) {
-    return;
-  }
-  const size_t block_size = std::max<size_t>(1, n / tbb::this_task_arena::max_concurrency());
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, n, block_size), [&](const tbb::blocked_range<size_t>& r) {
-    auto start = vec.begin() + r.begin();
-    auto end = vec.begin() + r.end();
-    std::vector<int> block(start, end);
-    SortByDigit(block);
-    std::copy(block.begin(), block.end(), start);
-  });
-  for (size_t k = block_size; k < n; k *= 2) {
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, n / (2 * k) + 1), [&](const tbb::blocked_range<size_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, n),
+      [&](const tbb::blocked_range<size_t>& r) {
       for (size_t i = r.begin(); i < r.end(); ++i) {
-        size_t left = 2 * i * k;
-        size_t right = std::min(left + 2 * k, n);
-        if (left < right) {
-          BatcherMerge(vec, left, right - left);
+        auto byte = static_cast<uint8_t>((keys[i] >> shift) & (radix - 1));
+        size_t dest_index = count[byte].fetch_add(1, std::memory_order_relaxed);
+        output_keys[dest_index] = keys[i];
+      }
+    });
+    keys.swap(output_keys);
+  }
+}
+
+void opolin_d_radix_batcher_sort_tbb::ParallelBatcherOddEvenMergeInternal(std::vector<int>& arr, size_t low, size_t high, size_t total_size) {
+   size_t n = high - low;
+   if (n <= 1) {
+       return;
+   }
+   size_t mid = low + n / 2;
+  tbb::parallel_invoke(
+    [&] { ParallelBatcherOddEvenMergeInternal(arr, low, mid, total_size); },
+    [&] { ParallelBatcherOddEvenMergeInternal(arr, mid, high, total_size); });
+   size_t p = n / 2;
+   while (p > 0) {
+    tbb::parallel_for(tbb::blocked_range<size_t>(low, high - p),
+      [&](const tbb::blocked_range<size_t>& r) {
+      for(size_t i = r.begin(); i < r.end(); ++i) {
+        if ((i / p) % 2 == 0) {
+          if (arr[i] > arr[i + p]) {
+            std::swap(arr[i], arr[i + p]);
+          }
         }
       }
     });
+    p /= 2;
   }
 }

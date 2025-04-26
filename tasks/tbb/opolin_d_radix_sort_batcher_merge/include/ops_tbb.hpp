@@ -6,10 +6,10 @@
 #include "core/task/include/task.hpp"
 
 namespace opolin_d_radix_batcher_sort_tbb {
-void BatcherMergeRadixSort(std::vector<int>& vec);
-void BatcherMerge(std::vector<int>& arr, size_t low, size_t n);
-void SortByDigit(std::vector<int>& vec);
-uint32_t ConvertKey(int num);
+uint32_t ConvertIntToKey(int num);
+int ConvertKeyToInt(uint32_t key);
+void ParallelRadixSortInternal(std::vector<uint32_t>& keys);
+void ParallelBatcherOddEvenMergeInternal(std::vector<int>& arr, size_t low, size_t high, size_t total_size);
 
 class RadixBatcherSortTaskTbb : public ppc::core::Task {
  public:
