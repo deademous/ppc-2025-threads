@@ -78,17 +78,15 @@ void opolin_d_radix_batcher_sort_tbb::RadixSort(std::vector<uint32_t>& keys) {
     });
     size_t current_sum = 0;
     for (int j = 0; j < radix; ++j) {
-      size_t current_count = count[j].load(std::memory_order_relaxed);
-      count[j].store(current_sum, std::memory_order_relaxed);
-      current_sum += current_count;
+      size_t cnt = count[j].load(std::memory_order_relaxed);
+      count[j] = current_sum;
+      current_sum += cnt;
     }
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t>& r) {
-      for (size_t i = r.begin(); i < r.end(); ++i) {
-        auto byte = static_cast<uint8_t>((keys[i] >> shift) & (radix - 1));
-        size_t dest_index = count[byte].fetch_add(1, std::memory_order_relaxed);
-        output_keys[dest_index] = keys[i];
-      }
-    });
+    for (int i = static_cast<int>(n) - 1; i >= 0; --i) {
+      auto byte = static_cast<uint8_t>((keys[i] >> shift) & (radix - 1));
+      size_t dest_index = --count[byte];
+      output_keys[dest_index] = keys[i];
+    }
     keys.swap(output_keys);
   }
 }
