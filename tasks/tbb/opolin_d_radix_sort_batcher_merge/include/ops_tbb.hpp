@@ -8,8 +8,8 @@
 namespace opolin_d_radix_batcher_sort_tbb {
 uint32_t ConvertIntToKey(int num);
 int ConvertKeyToInt(uint32_t key);
-void ParallelRadixSortInternal(std::vector<uint32_t>& keys);
-void ParallelBatcherOddEvenMergeInternal(std::vector<int>& arr, size_t low, size_t high, size_t total_size);
+void RadixSort(std::vector<uint32_t>& keys);
+void BatcherOddEvenMerge(std::vector<int>& arr, int low, int high);
 
 class RadixBatcherSortTaskTbb : public ppc::core::Task {
  public:

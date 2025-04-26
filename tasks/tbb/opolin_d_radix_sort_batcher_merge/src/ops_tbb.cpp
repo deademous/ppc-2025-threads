@@ -36,14 +36,14 @@ bool opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::RunImpl() {
       keys[i] = ConvertIntToKey(input_[i]);
     }
   });
-  ParallelRadixSortInternal(keys);
+  RadixSort(keys);
   output_.resize(size_);
   tbb::parallel_for(tbb::blocked_range<size_t>(0, size_), [&](const tbb::blocked_range<size_t>& r) {
     for (size_t i = r.begin(); i < r.end(); ++i) {
       output_[i] = ConvertKeyToInt(keys[i]);
     }
   });
-  ParallelBatcherOddEvenMergeInternal(output_, 0, size_, size_);
+  BatcherOddEvenMerge(output_, 0, static_cast<int>(output_.size()));
   return true;
 }
 
@@ -58,7 +58,7 @@ uint32_t opolin_d_radix_batcher_sort_tbb::ConvertIntToKey(int num) { return stat
 
 int opolin_d_radix_batcher_sort_tbb::ConvertKeyToInt(uint32_t key) { return static_cast<int>(key ^ 0x80000000U); }
 
-void opolin_d_radix_batcher_sort_tbb::ParallelRadixSortInternal(std::vector<uint32_t>& keys) {
+void opolin_d_radix_batcher_sort_tbb::RadixSort(std::vector<uint32_t>& keys) {
   size_t n = keys.size();
   if (n <= 1) {
     return;
@@ -93,26 +93,19 @@ void opolin_d_radix_batcher_sort_tbb::ParallelRadixSortInternal(std::vector<uint
   }
 }
 
-void opolin_d_radix_batcher_sort_tbb::ParallelBatcherOddEvenMergeInternal(std::vector<int>& arr, size_t low,
-                                                                          size_t high, size_t total_size) {
-  size_t n = high - low;
-  if (n <= 1) {
+void opolin_d_radix_batcher_sort_tbb::BatcherOddEvenMerge(std::vector<int>& arr, int low, int high) {
+  if (high - low <= 1) {
     return;
   }
-  size_t mid = low + n / 2;
-  tbb::parallel_invoke([&] { ParallelBatcherOddEvenMergeInternal(arr, low, mid, total_size); },
-                       [&] { ParallelBatcherOddEvenMergeInternal(arr, mid, high, total_size); });
-  size_t p = n / 2;
-  while (p > 0) {
-    tbb::parallel_for(tbb::blocked_range<size_t>(low, high - p), [&](const tbb::blocked_range<size_t>& r) {
-      for (size_t i = r.begin(); i < r.end(); ++i) {
-        if ((i / p) % 2 == 0) {
-          if (arr[i] > arr[i + p]) {
-            std::swap(arr[i], arr[i + p]);
-          }
-        }
+  int mid = (low + high) / 2;
+
+  tbb::parallel_invoke([&] { BatcherOddEvenMerge(arr, low, mid); }, [&] { BatcherOddEvenMerge(arr, mid, high); });
+
+  tbb::parallel_for(tbb::blocked_range<int>(low, mid), [&](const tbb::blocked_range<int>& r) {
+    for (int i = r.begin(); i < r.end(); ++i) {
+      if (arr[i] > arr[i + mid - low]) {
+        std::swap(arr[i], arr[i + mid - low]);
       }
-    });
-    p /= 2;
-  }
+    }
+  });
 }
