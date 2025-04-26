@@ -85,13 +85,10 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMerge(std::vector<int>& arr, size_t
   if (n <= 1) {
     return;
   }
-  size_t mid = n/2;
-  tbb::parallel_invoke(
-    [&]{ BatcherMerge(arr, low, mid); },
-    [&]{ BatcherMerge(arr, low + mid, n - mid); });
-  size_t step = (n + 1)/2;
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, step),
-  [&](const tbb::blocked_range<size_t>& r) {
+  size_t mid = n / 2;
+  tbb::parallel_invoke([&] { BatcherMerge(arr, low, mid); }, [&] { BatcherMerge(arr, low + mid, n - mid); });
+  size_t step = (n + 1) / 2;
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, step), [&](const tbb::blocked_range<size_t>& r) {
     for (size_t i = r.begin(); i < r.end(); ++i) {
       size_t idx1 = low + i * 2;
       size_t idx2 = idx1 + step;
@@ -108,8 +105,7 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& ve
     return;
   }
   const size_t block_size = std::max<size_t>(1, n / tbb::this_task_arena::max_concurrency());
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, n, block_size),
-  [&](const tbb::blocked_range<size_t>& r) {
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, n, block_size), [&](const tbb::blocked_range<size_t>& r) {
     auto start = vec.begin() + r.begin();
     auto end = vec.begin() + r.end();
     std::vector<int> block(start, end);
@@ -118,8 +114,7 @@ void opolin_d_radix_batcher_sort_tbb::BatcherMergeRadixSort(std::vector<int>& ve
   });
   for (size_t k = 2; k < 2 * n; k *= 2) {
     for (size_t j = k / 2; j > 0; j /= 2) {
-      tbb::parallel_for(tbb::blocked_range<size_t>(0, n),
-      [&](const tbb::blocked_range<size_t>& r) {
+      tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t>& r) {
         for (size_t i = r.begin(); i < r.end(); ++i) {
           size_t l = i ^ j;
           if (l > i && l < n) {
