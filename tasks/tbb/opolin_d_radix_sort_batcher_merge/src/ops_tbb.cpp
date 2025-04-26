@@ -6,7 +6,6 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <span>
 #include <vector>
 
 bool opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::PreProcessingImpl() {
@@ -30,13 +29,7 @@ bool opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::ValidationImpl() 
 }
 
 bool opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::RunImpl() {
-  std::vector<uint32_t> keys(size_);
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, size_), [&](const tbb::blocked_range<size_t>& r) {
-    for (size_t i = r.begin(); i < r.end(); ++i) {
-      keys[i] = ConvertIntToKey(input_[i]);
-    }
-  });
-  RadixSort(keys);
+  RadixSort(input_);
   output_.resize(size_);
   tbb::parallel_for(tbb::blocked_range<size_t>(0, size_), [&](const tbb::blocked_range<size_t>& r) {
     for (size_t i = r.begin(); i < r.end(); ++i) {
@@ -58,38 +51,48 @@ uint32_t opolin_d_radix_batcher_sort_tbb::ConvertIntToKey(int num) { return stat
 
 int opolin_d_radix_batcher_sort_tbb::ConvertKeyToInt(uint32_t key) { return static_cast<int>(key ^ 0x80000000U); }
 
-void opolin_d_radix_batcher_sort_tbb::RadixSort(std::vector<uint32_t>& keys) {
-  size_t n = keys.size();
+void opolin_d_radix_batcher_sort_tbb::RadixSort(std::vector<int>& data) {
+  size_t n = data.size();
   if (n <= 1) {
     return;
   }
+  std::vector<uint32_t> keys(n);
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t>& r) {
+    for (size_t i = r.begin(); i < r.end(); ++i) {
+      keys[i] = ConvertIntToKey(data[i]);
+    }
+  });
   const int radix = 256;
   std::vector<uint32_t> output_keys(n);
   for (int pass = 0; pass < 4; ++pass) {
-    std::vector<size_t> count(radix, 0);
+    std::vector<std::atomic<size_t>> count(radix);
+    for (auto& c : count) {
+      c.store(0, std::memory_order_relaxed);
+    }
     int shift = pass * 8;
     tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t>& r) {
-      std::vector<size_t> local_count(radix, 0);
       for (size_t i = r.begin(); i < r.end(); ++i) {
         auto byte = static_cast<uint8_t>((keys[i] >> shift) & 0xFF);
-        local_count[byte]++;
-      }
-      for (int j = 0; j < radix; ++j) {
-        count[j] += local_count[j];
+        count[byte].fetch_add(1, std::memory_order_relaxed);
       }
     });
-    size_t current_sum = 0;
-    for (int j = 0; j < radix; ++j) {
-      size_t cnt = count[j];
-      count[j] = current_sum;
-      current_sum += cnt;
+    std::vector<size_t> count_prefix(radix);
+    count_prefix[0] = count[0].load(std::memory_order_relaxed);
+    for (int j = 1; j < radix; ++j) {
+      count_prefix[j] = count_prefix[j - 1] + count[j].load(std::memory_order_relaxed);
     }
     for (int i = static_cast<int>(n) - 1; i >= 0; --i) {
       auto byte = static_cast<uint8_t>((keys[i] >> shift) & 0xFF);
-      output_keys[--count[byte]] = keys[i];
+      size_t index = --count_prefix[byte];
+      output_keys[index] = keys[i];
     }
     keys.swap(output_keys);
   }
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t>& r) {
+    for (size_t i = r.begin(); i < r.end(); ++i) {
+      data[i] = ConvertKeyToInt(keys[i]);
+    }
+  });
 }
 
 void opolin_d_radix_batcher_sort_tbb::BatcherOddEvenMerge(std::vector<int>& arr, int low, int high) {
