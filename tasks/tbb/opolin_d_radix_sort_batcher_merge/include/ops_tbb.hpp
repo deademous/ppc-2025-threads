@@ -8,7 +8,7 @@
 namespace opolin_d_radix_batcher_sort_tbb {
 uint32_t ConvertIntToKey(int num);
 int ConvertKeyToInt(uint32_t key);
-void RadixSort(std::vector<int>& data);
+void RadixSort(std::vector<uint32_t>& keys);
 void BatcherOddEvenMerge(std::vector<int>& arr, int low, int high);
 
 class RadixBatcherSortTaskTbb : public ppc::core::Task {
@@ -22,6 +22,6 @@ class RadixBatcherSortTaskTbb : public ppc::core::Task {
  private:
   std::vector<int> input_;
   std::vector<int> output_;
-  int size_;
+  size_t size_;
 };
 }  // namespace opolin_d_radix_batcher_sort_tbb
