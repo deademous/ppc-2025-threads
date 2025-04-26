@@ -63,29 +63,30 @@ void opolin_d_radix_batcher_sort_tbb::RadixSort(std::vector<uint32_t>& keys) {
   if (n <= 1) {
     return;
   }
-  const int bits_per_pass = 8;
-  const int num_passes = sizeof(uint32_t);
-  const int radix = 1 << bits_per_pass;
+  const int radix = 256;
   std::vector<uint32_t> output_keys(n);
-  for (int pass = 0; pass < num_passes; ++pass) {
-    std::vector<std::atomic<size_t>> count(radix);
-    int shift = pass * bits_per_pass;
+  for (int pass = 0; pass < 4; ++pass) {
+    std::vector<size_t> count(radix, 0);
+    int shift = pass * 8;
     tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t>& r) {
+      std::vector<size_t> local_count(radix, 0);
       for (size_t i = r.begin(); i < r.end(); ++i) {
-        auto byte = static_cast<uint8_t>((keys[i] >> shift) & (radix - 1));
-        count[byte].fetch_add(1, std::memory_order_relaxed);
+        auto byte = static_cast<uint8_t>((keys[i] >> shift) & 0xFF);
+        local_count[byte]++;
+      }
+      for (int j = 0; j < radix; ++j) {
+        count[j] += local_count[j];
       }
     });
     size_t current_sum = 0;
     for (int j = 0; j < radix; ++j) {
-      size_t cnt = count[j].load(std::memory_order_relaxed);
+      size_t cnt = count[j];
       count[j] = current_sum;
       current_sum += cnt;
     }
     for (int i = static_cast<int>(n) - 1; i >= 0; --i) {
-      auto byte = static_cast<uint8_t>((keys[i] >> shift) & (radix - 1));
-      size_t dest_index = --count[byte];
-      output_keys[dest_index] = keys[i];
+      auto byte = static_cast<uint8_t>((keys[i] >> shift) & 0xFF);
+      output_keys[--count[byte]] = keys[i];
     }
     keys.swap(output_keys);
   }
