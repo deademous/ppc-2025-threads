@@ -3,6 +3,7 @@
 #include <tbb/tbb.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -29,13 +30,8 @@ bool opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::ValidationImpl() 
 }
 
 bool opolin_d_radix_batcher_sort_tbb::RadixBatcherSortTaskTbb::RunImpl() {
-  RadixSort(input_);
-  output_.resize(size_);
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, size_), [&](const tbb::blocked_range<size_t>& r) {
-    for (size_t i = r.begin(); i < r.end(); ++i) {
-      output_[i] = ConvertKeyToInt(keys[i]);
-    }
-  });
+  output_ = input_;
+  RadixSort(output_);
   BatcherOddEvenMerge(output_, 0, static_cast<int>(output_.size()));
   return true;
 }
