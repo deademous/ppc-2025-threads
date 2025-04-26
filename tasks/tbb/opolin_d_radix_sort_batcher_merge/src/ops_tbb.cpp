@@ -65,27 +65,26 @@ void opolin_d_radix_batcher_sort_tbb::RadixSort(std::vector<uint32_t>& keys) {
   const int radix = 256;
   std::vector<uint32_t> output_keys(n);
   for (int pass = 0; pass < 4; ++pass) {
-    tbb::enumerable_thread_specific<std::vector<size_t>> local_counts([radix] {
-      return std::vector<size_t>(radix, 0);
-    });
+    tbb::enumerable_thread_specific<std::vector<size_t>> local_counts(
+        [radix] { return std::vector<size_t>(radix, 0); });
     int shift = pass * 8;
     tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t>& r) {
       auto& lc = local_counts.local();
-      for(size_t i = r.begin(); i < r.end(); ++i) {
+      for (size_t i = r.begin(); i < r.end(); ++i) {
         const uint8_t byte = (keys[i] >> shift) & 0xFF;
         lc[byte]++;
       }
     });
     std::vector<size_t> count_prefix(radix, 0);
-    for(auto& lc : local_counts) {
-      for(int j = 0; j < radix; ++j) {
+    for (auto& lc : local_counts) {
+      for (int j = 0; j < radix; ++j) {
         count_prefix[j] += lc[j];
       }
     }
-    for(int j = 1; j < radix; ++j) {
+    for (int j = 1; j < radix; ++j) {
       count_prefix[j] += count_prefix[j - 1];
     }
-    for(int i = n - 1; i >= 0; --i) {
+    for (int i = n - 1; i >= 0; --i) {
       const uint8_t byte = (keys[i] >> shift) & 0xFF;
       output_keys[--count_prefix[byte]] = keys[i];
     }
